@@ -68,10 +68,9 @@ machine.Terminal(StateApproved)      // true; terminal = no outgoing transitions
 Guards and actions hang on transitions; enter/exit callbacks are machine-wide
 observers. 
 
-Execution order per transition (A → B, then B → C): guard → action →
-onExit[A] → onEnter[B], then guard → action → onExit[B] → onEnter[C]. A false
-guard or a failed action aborts the transition with the state unchanged;
-callbacks cannot alter the outcome.
+Execution order: onExit[A] → onEnter[B] → guard → action → onExit[B] → onEnter[C]. A false guard
+or a failed action aborts the transition with the state unchanged; callbacks
+cannot alter the outcome.
 
 ```go
 machine, err := fsm.New[Claim]([]fsm.Transition[Claim]{
