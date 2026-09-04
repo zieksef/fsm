@@ -18,7 +18,7 @@ func WithOnEnter[T any](fn Callback[T]) Option[T] {
 			return nil
 		}
 		if f.onEnter != nil {
-			return fmt.Errorf("%w (hook onEnter)", ErrDuplicateCallback)
+			return fmt.Errorf("%w (hook=onEnter)", ErrDuplicateCallback)
 		}
 		f.onEnter = fn
 		return nil
@@ -34,7 +34,7 @@ func WithOnExit[T any](fn Callback[T]) Option[T] {
 			return nil
 		}
 		if f.onExit != nil {
-			return fmt.Errorf("%w (hook onExit)", ErrDuplicateCallback)
+			return fmt.Errorf("%w (hook=onExit)", ErrDuplicateCallback)
 		}
 		f.onExit = fn
 		return nil
@@ -53,11 +53,11 @@ func WithDeciders[T any](deciders map[State]Decider[T]) Option[T] {
 			}
 			n, ok := f.nodes[s]
 			if !ok {
-				errs = append(errs, fmt.Errorf("%w (state %s)", ErrUnknownState, s))
+				errs = append(errs, fmt.Errorf("%w (state=%s)", ErrUnknownState, s))
 				continue
 			}
 			if n.decider != nil {
-				errs = append(errs, fmt.Errorf("%w (state %s)", ErrDuplicateDecider, s))
+				errs = append(errs, fmt.Errorf("%w (state=%s)", ErrDuplicateDecider, s))
 				continue
 			}
 			n.decider = fn

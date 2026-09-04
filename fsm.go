@@ -25,7 +25,7 @@ func New[T any](transitions []Transition[T], opts ...Option[T]) (*FSM[T], error)
 	for _, t := range transitions {
 		src := f.getOrCreate(t.From)
 		if _, ok := src.transitions[t.Event]; ok {
-			buildErrs = append(buildErrs, fmt.Errorf("%w (from %s, event %s)", ErrDuplicateTransition, t.From, t.Event))
+			buildErrs = append(buildErrs, fmt.Errorf("%w (from=%s, event=%s)", ErrDuplicateTransition, t.From, t.Event))
 			continue
 		}
 		src.transitions[t.Event] = &transition[T]{
