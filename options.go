@@ -1,6 +1,7 @@
 package fsm
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -32,16 +33,24 @@ func WithOnExit[T any](fn Callback[T]) Option[T] {
 	}
 }
 
-func WithDecider[T any](state State, fn Decider[T]) Option[T] {
+func WithDeciders[T any](deciders map[State]Decider[T]) Option[T] {
 	return func(f *FSM[T]) error {
-		if fn == nil {
-			return nil
+		var errs []error
+		for s, fn := range deciders {
+			if fn == nil {
+				continue
+			}
+			n, ok := f.nodes[s]
+			if !ok {
+				errs = append(errs, fmt.Errorf("%w: %s", ErrUnknownState, s))
+				continue
+			}
+			if n.decider != nil {
+				errs = append(errs, fmt.Errorf("%w: %s", ErrDuplicateDecider, s))
+				continue
+			}
+			n.decider = fn
 		}
-		n, ok := f.nodes[state]
-		if !ok {
-			return fmt.Errorf("%w: %s", ErrUnknownState, state)
-		}
-		n.decider = fn
-		return nil
+		return errors.Join(errs...)
 	}
 }

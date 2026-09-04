@@ -12,5 +12,6 @@ var (
 	ErrInTerminalState     = errors.New("fsm: already in terminal state")
 	ErrDuplicateTransition = errors.New("fsm: duplicate transition for same state and event")
 	ErrDuplicateCallback   = errors.New("fsm: callback already registered")
+	ErrDuplicateDecider    = errors.New("fsm: decider already registered for state")
 	ErrUnknownState        = errors.New("fsm: option references unknown state")
 )

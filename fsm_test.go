@@ -49,12 +49,27 @@ func TestNew_RejectsDuplicateTransition(t *testing.T) {
 	assert.Nil(t, m)
 }
 
-func TestNew_RejectsUnknownStateInDecider(t *testing.T) {
+func TestNew_RejectsUnknownStateInDeciders(t *testing.T) {
 	t.Parallel()
 
 	m, newErr := New(orderTransitions(),
-		WithDecider[orderCtx]("nonexistent", func(_ context.Context, _ *orderCtx) Event { return "x" }))
+		WithDeciders(map[State]Decider[orderCtx]{
+			"nonexistent": func(_ context.Context, _ *orderCtx) Event { return "x" },
+		}))
 	require.ErrorIs(t, newErr, ErrUnknownState)
+	assert.Nil(t, m)
+}
+
+func TestNew_RejectsDuplicateDecider(t *testing.T) {
+	t.Parallel()
+
+	d := func(_ context.Context, _ *orderCtx) Event { return "submit" }
+
+	m, newErr := New(orderTransitions(),
+		WithDeciders(map[State]Decider[orderCtx]{"draft": d}),
+		WithDeciders(map[State]Decider[orderCtx]{"draft": d}),
+	)
+	require.ErrorIs(t, newErr, ErrDuplicateDecider)
 	assert.Nil(t, m)
 }
 
@@ -247,9 +262,11 @@ func TestDrive_DrivesToTerminal(t *testing.T) {
 	}
 
 	m := mustNew(t, transitions,
-		WithDecider[msgCtx]("received", handler("received")),
-		WithDecider[msgCtx]("validated", handler("validated")),
-		WithDecider[msgCtx]("processed", handler("processed")),
+		WithDeciders(map[State]Decider[msgCtx]{
+			"received":  handler("received"),
+			"validated": handler("validated"),
+			"processed": handler("processed"),
+		}),
 	)
 
 	c := &msgCtx{}
@@ -280,8 +297,10 @@ func TestDrive_Rerun(t *testing.T) {
 	m := mustNew(t, []Transition[emptyCtx]{
 		{From: "start", Event: "go", To: "end"},
 	},
-		WithDecider[emptyCtx]("start", func(_ context.Context, _ *emptyCtx) Event {
-			return "go"
+		WithDeciders(map[State]Decider[emptyCtx]{
+			"start": func(_ context.Context, _ *emptyCtx) Event {
+				return "go"
+			},
 		}),
 	)
 
@@ -401,7 +420,7 @@ func TestWithNilCallbackIgnored(t *testing.T) {
 	m := mustNew(t, orderTransitions(),
 		WithOnEnter[orderCtx](nil),
 		WithOnExit[orderCtx](nil),
-		WithDecider[orderCtx]("draft", nil),
+		WithDeciders(map[State]Decider[orderCtx]{"draft": nil}),
 	)
 
 	// nil OnEnter/OnExit should not cause panic
@@ -430,18 +449,20 @@ func TestDrive_CtxCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	m := mustNew(t, transitions,
-		WithDecider[counter]("a", func(_ context.Context, v *counter) Event {
-			v.N++
-			cancel() // 第一步就取消 ctx
-			return "next"
-		}),
-		WithDecider[counter]("b", func(_ context.Context, v *counter) Event {
-			v.N++
-			return "next"
-		}),
-		WithDecider[counter]("c", func(_ context.Context, v *counter) Event {
-			v.N++
-			return "next"
+		WithDeciders(map[State]Decider[counter]{
+			"a": func(_ context.Context, v *counter) Event {
+				v.N++
+				cancel() // 第一步就取消 ctx
+				return "next"
+			},
+			"b": func(_ context.Context, v *counter) Event {
+				v.N++
+				return "next"
+			},
+			"c": func(_ context.Context, v *counter) Event {
+				v.N++
+				return "next"
+			},
 		}),
 	)
 
