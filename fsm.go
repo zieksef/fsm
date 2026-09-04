@@ -12,6 +12,10 @@ type FSM[T any] struct {
 	onExit  Callback[T]
 }
 
+// New compiles transitions into an immutable state graph and applies opts.
+// Configuration problems — duplicate from+event pairs, duplicate callbacks
+// or deciders, options referencing unknown states — are collected and
+// returned together as one joined error.
 func New[T any](transitions []Transition[T], opts ...Option[T]) (*FSM[T], error) {
 	f := &FSM[T]{
 		nodes: make(map[State]*stateNode[T]),
@@ -21,7 +25,7 @@ func New[T any](transitions []Transition[T], opts ...Option[T]) (*FSM[T], error)
 	for _, t := range transitions {
 		src := f.getOrCreate(t.From)
 		if _, ok := src.transitions[t.Event]; ok {
-			buildErrs = append(buildErrs, fmt.Errorf("%w: %s + %s", ErrDuplicateTransition, t.From, t.Event))
+			buildErrs = append(buildErrs, fmt.Errorf("%w (from %s, event %s)", ErrDuplicateTransition, t.From, t.Event))
 			continue
 		}
 		src.transitions[t.Event] = &transition[T]{
@@ -123,6 +127,9 @@ func (f *FSM[T]) Drive(ctx context.Context, from State, v *T) (State, error) {
 	return current, nil
 }
 
+// Has reports whether the graph defines a transition from from on event.
+// It is a pure table lookup: guards are not evaluated, so a true result
+// does not promise that Fire would succeed.
 func (f *FSM[T]) Has(from State, event Event) bool {
 	n, ok := f.nodes[from]
 	if !ok {
@@ -132,6 +139,8 @@ func (f *FSM[T]) Has(from State, event Event) bool {
 	return ok
 }
 
+// Terminal reports whether state is terminal, i.e. has no outgoing
+// transitions.
 func (f *FSM[T]) Terminal(state State) bool {
 	n, ok := f.nodes[state]
 	return ok && n.terminal
