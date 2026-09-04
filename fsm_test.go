@@ -433,6 +433,47 @@ func TestWithNilCallbackIgnored(t *testing.T) {
 	require.ErrorIs(t, driveErr, ErrNoDecider)
 }
 
+// --- Visualization tests ---
+
+func TestMermaid(t *testing.T) {
+	t.Parallel()
+
+	m := mustNew(t, orderTransitions())
+
+	want := `stateDiagram-v2
+    approved --> [*]
+    cancelled --> [*]
+    draft --> cancelled: cancel
+    draft --> pending: submit
+    pending --> approved: approve
+    pending --> cancelled: cancel
+    pending --> rejected: reject
+    rejected --> [*]
+`
+	assert.Equal(t, want, m.Mermaid())
+}
+
+func TestVisualize(t *testing.T) {
+	t.Parallel()
+
+	m := mustNew(t, orderTransitions())
+
+	want := `digraph fsm {
+    rankdir=LR;
+    node [shape=circle];
+    "approved" [shape=doublecircle];
+    "cancelled" [shape=doublecircle];
+    "rejected" [shape=doublecircle];
+    "draft" -> "cancelled" [label="cancel"];
+    "draft" -> "pending" [label="submit"];
+    "pending" -> "approved" [label="approve"];
+    "pending" -> "cancelled" [label="cancel"];
+    "pending" -> "rejected" [label="reject"];
+}
+`
+	assert.Equal(t, want, m.Visualize())
+}
+
 // --- Drive ctx cancel tests ---
 
 func TestDrive_CtxCancel(t *testing.T) {
