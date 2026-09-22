@@ -171,9 +171,11 @@ func TestFire_SharedInstanceAcrossGoroutines(t *testing.T) {
 			current, event, wants[i] = "pending", "approve", "approved"
 		}
 
-		wg.Go(func() {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 			nexts[i], fireErrs[i] = m.Fire(context.Background(), current, event, &orderCtx{})
-		})
+		}()
 	}
 	wg.Wait()
 
